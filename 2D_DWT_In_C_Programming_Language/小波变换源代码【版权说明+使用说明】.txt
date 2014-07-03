@@ -1,0 +1,8 @@
+/*
+	This copy is designed  by ShiLixing (shilx@mail.ustc.edu.cn)
+	from School of Information Science and Technology of USTC;
+	2013-01-15 All Rights Reserved.
+	Welcome to visit my homepage: http://home.ustc.edu.cn/~shilx
+*/
+
+本程序使用C语言实现了任意阶的二维离散小波变换，而且方便自主添加小波基【滤波器系数】谢谢使用！
