@@ -30,16 +30,16 @@
 /* 小波变换数据描述结构体 */
 
 /* 矩阵描述结构体 */
-typedef struct dbDataPanel2D {
-	double * m_pData2D;			// 指向存放元素的空间
-	int m_nSizeRow;	// 行数
-	int m_nSizeCol;	// 列数
-} DBDataPanel2D;
+typedef struct Matrix {
+	double * data;			// 指向存放元素的空间
+	int height;	// 行数
+	int width;	// 列数
+} MATRIX;
 
 typedef struct intDataPanel2D {
-	int * m_pData2D;
-	int m_nSizeRow;
-	int m_nSizeCol;
+	int * data;
+	int height;
+	int width;
 } IntDataPanel2D;
 
 /* 小波变换信息描述结构体 */
@@ -53,10 +53,10 @@ typedef struct wtInfo {
 
 /* 小波变换结果描述结构体 */
 typedef struct WTCoefSet{
-	DBDataPanel2D * A_LL;		// 低通分量
-	DBDataPanel2D * H_LH;		// 水平分量
-	DBDataPanel2D * V_HL;		// 竖直分量
-	DBDataPanel2D * D_HH;		// 对角分量
+	MATRIX * A_LL;		// 低通分量
+	MATRIX * H_LH;		// 水平分量
+	MATRIX * V_HL;		// 竖直分量
+	MATRIX * D_HH;		// 对角分量
 } WTCOEFSet;
 
 /* 小波基常量描述结构体 */
@@ -88,20 +88,20 @@ double * SerialReverse(double * pSrcSerial, int nSerialLen);
 
 
 /* 结构体内存管理相关函数 */
-void DDP_FREE(DBDataPanel2D * pDBDataPanel2D)
+void DDP_FREE(MATRIX * pMATRIX)
 {
-	if (pDBDataPanel2D != NULL) {
-		if (pDBDataPanel2D->m_pData2D != NULL)
-			free(pDBDataPanel2D->m_pData2D);
-		free(pDBDataPanel2D);
+	if (pMATRIX != NULL) {
+		if (pMATRIX->data != NULL)
+			free(pMATRIX->data);
+		free(pMATRIX);
 	}
 }
 
 void IDP_FREE(IntDataPanel2D * pIntDataPanel2D)
 {
 	if (pIntDataPanel2D != NULL) {
-		if (pIntDataPanel2D->m_pData2D != NULL)
-			free(pIntDataPanel2D->m_pData2D);
+		if (pIntDataPanel2D->data != NULL)
+			free(pIntDataPanel2D->data);
 		free(pIntDataPanel2D);
 	}
 }
@@ -185,102 +185,102 @@ WaveletBASE * SetWaveletBase(int nWaveType)
 
 
 /* 延拓 */
-DBDataPanel2D * WExtend2D(DBDataPanel2D * pSrcData, int nExtType, int nExtSizeRow, int nExtSizeCol)
+MATRIX * WExtend2D(MATRIX * pSrcData, int nExtType, int nExtSizeRow, int nExtSizeCol)
 {
 	int i, j;
-	DBDataPanel2D * pResultData = NULL;
+	MATRIX * pResultData = NULL;
 
-	pResultData = (DBDataPanel2D *)calloc(1, sizeof(DBDataPanel2D));
+	pResultData = (MATRIX *)calloc(1, sizeof(MATRIX));
 	if (!pResultData)
 		exit(1);
 
-	pResultData->m_nSizeRow = pSrcData->m_nSizeRow+nExtSizeRow*2;
-	pResultData->m_nSizeCol = pSrcData->m_nSizeCol+nExtSizeCol*2;
-	pResultData->m_pData2D = (double *) calloc(pResultData->m_nSizeRow*pResultData->m_nSizeCol, sizeof(double));
-	if (!pResultData->m_pData2D) {
+	pResultData->height = pSrcData->height+nExtSizeRow*2;
+	pResultData->width = pSrcData->width+nExtSizeCol*2;
+	pResultData->data = (double *) calloc(pResultData->height*pResultData->width, sizeof(double));
+	if (!pResultData->data) {
 		DDP_FREE(pResultData);
 		exit(1);
 	}
 
-	for (i = 0; i < pSrcData->m_nSizeRow; i++)
-		for (j = 0; j < pSrcData->m_nSizeCol; j++)
-			DATA2D(pResultData->m_pData2D, i+nExtSizeRow, j+nExtSizeCol, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, i, j, pSrcData->m_nSizeCol);
+	for (i = 0; i < pSrcData->height; i++)
+		for (j = 0; j < pSrcData->width; j++)
+			DATA2D(pResultData->data, i+nExtSizeRow, j+nExtSizeCol, pResultData->width) = DATA2D(pSrcData->data, i, j, pSrcData->width);
 
 	switch (nExtType) {
 	case ExtT_ZPD:	// 零延拓
 		for (i = 0; i < nExtSizeRow; i++)
 			for (j = 0; j < nExtSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = 0;
-				DATA2D(pResultData->m_pData2D, i, pResultData->m_nSizeCol-j-1, pResultData->m_nSizeCol) = 0;
-				DATA2D(pResultData->m_pData2D, pResultData->m_nSizeRow-i-1, j, pResultData->m_nSizeCol) = 0;
-				DATA2D(pResultData->m_pData2D, pResultData->m_nSizeRow-i-1, pResultData->m_nSizeCol-j-1, pResultData->m_nSizeCol) = 0;
+				DATA2D(pResultData->data, i, j, pResultData->width) = 0;
+				DATA2D(pResultData->data, i, pResultData->width-j-1, pResultData->width) = 0;
+				DATA2D(pResultData->data, pResultData->height-i-1, j, pResultData->width) = 0;
+				DATA2D(pResultData->data, pResultData->height-i-1, pResultData->width-j-1, pResultData->width) = 0;
 			}
 		for (i = 0; i < nExtSizeRow; i++)
-			for (j = nExtSizeCol; j < pResultData->m_nSizeCol-nExtSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = 0;
-				DATA2D(pResultData->m_pData2D, pResultData->m_nSizeRow-1-i, j, pResultData->m_nSizeCol) = 0;
+			for (j = nExtSizeCol; j < pResultData->width-nExtSizeCol; j++) {
+				DATA2D(pResultData->data, i, j, pResultData->width) = 0;
+				DATA2D(pResultData->data, pResultData->height-1-i, j, pResultData->width) = 0;
 			}
-		for (i = nExtSizeRow; i < pResultData->m_nSizeRow-nExtSizeRow; i++)
+		for (i = nExtSizeRow; i < pResultData->height-nExtSizeRow; i++)
 			for (j = 0; j < nExtSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = 0;
-				DATA2D(pResultData->m_pData2D, i, pResultData->m_nSizeCol-1-j, pResultData->m_nSizeCol) = 0;
+				DATA2D(pResultData->data, i, j, pResultData->width) = 0;
+				DATA2D(pResultData->data, i, pResultData->width-1-j, pResultData->width) = 0;
 			}
 		break;
 	case ExtT_SYM:	// 对称延拓
 		for (i = 0; i < nExtSizeRow; i++)
 			for (j = 0; j < nExtSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, nExtSizeRow-i-1, nExtSizeCol-j-1, pSrcData->m_nSizeCol);
-				DATA2D(pResultData->m_pData2D, i, pResultData->m_nSizeCol-j-1, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, nExtSizeRow-i-1, pSrcData->m_nSizeCol-(nExtSizeCol-j-1)-1, pSrcData->m_nSizeCol);
-				DATA2D(pResultData->m_pData2D, pResultData->m_nSizeRow-i-1, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, pSrcData->m_nSizeRow-(nExtSizeRow-i-1)-1, nExtSizeCol-j-1, pSrcData->m_nSizeCol);
-				DATA2D(pResultData->m_pData2D, pResultData->m_nSizeRow-i-1, pResultData->m_nSizeCol-j-1, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, pSrcData->m_nSizeRow-(nExtSizeRow-i-1)-1, pSrcData->m_nSizeCol-(nExtSizeCol-j-1)-1, pSrcData->m_nSizeCol);
+				DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, nExtSizeRow-i-1, nExtSizeCol-j-1, pSrcData->width);
+				DATA2D(pResultData->data, i, pResultData->width-j-1, pResultData->width) = DATA2D(pSrcData->data, nExtSizeRow-i-1, pSrcData->width-(nExtSizeCol-j-1)-1, pSrcData->width);
+				DATA2D(pResultData->data, pResultData->height-i-1, j, pResultData->width) = DATA2D(pSrcData->data, pSrcData->height-(nExtSizeRow-i-1)-1, nExtSizeCol-j-1, pSrcData->width);
+				DATA2D(pResultData->data, pResultData->height-i-1, pResultData->width-j-1, pResultData->width) = DATA2D(pSrcData->data, pSrcData->height-(nExtSizeRow-i-1)-1, pSrcData->width-(nExtSizeCol-j-1)-1, pSrcData->width);
 			}
 		for (i = 0; i < nExtSizeRow; i++)
-			for (j = nExtSizeCol; j < pResultData->m_nSizeCol-nExtSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, nExtSizeRow-i-1, j-nExtSizeCol, pSrcData->m_nSizeCol);
-				DATA2D(pResultData->m_pData2D, pResultData->m_nSizeRow-1-i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, pSrcData->m_nSizeRow-(nExtSizeRow-i), j-nExtSizeCol, pSrcData->m_nSizeCol);
+			for (j = nExtSizeCol; j < pResultData->width-nExtSizeCol; j++) {
+				DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, nExtSizeRow-i-1, j-nExtSizeCol, pSrcData->width);
+				DATA2D(pResultData->data, pResultData->height-1-i, j, pResultData->width) = DATA2D(pSrcData->data, pSrcData->height-(nExtSizeRow-i), j-nExtSizeCol, pSrcData->width);
 			}
-		for (i = nExtSizeRow; i < pResultData->m_nSizeRow-nExtSizeRow; i++)
+		for (i = nExtSizeRow; i < pResultData->height-nExtSizeRow; i++)
 			for (j = 0; j < nExtSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, i-nExtSizeRow, nExtSizeCol-j-1, pSrcData->m_nSizeCol);
-				DATA2D(pResultData->m_pData2D, i, pResultData->m_nSizeCol-1-j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, i-nExtSizeRow, pSrcData->m_nSizeCol-(nExtSizeCol-j), pSrcData->m_nSizeCol);
+				DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, i-nExtSizeRow, nExtSizeCol-j-1, pSrcData->width);
+				DATA2D(pResultData->data, i, pResultData->width-1-j, pResultData->width) = DATA2D(pSrcData->data, i-nExtSizeRow, pSrcData->width-(nExtSizeCol-j), pSrcData->width);
 			}
 		break;
 	case ExtT_PPD:	// 周期延拓
 		for (i = 0; i < nExtSizeRow; i++)
 			for (j = 0; j < nExtSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, pSrcData->m_nSizeRow-(nExtSizeRow-i-1)-1, pSrcData->m_nSizeCol-(nExtSizeCol-j-1)-1, pSrcData->m_nSizeCol);
-				DATA2D(pResultData->m_pData2D, i, pResultData->m_nSizeCol-j-1, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, pSrcData->m_nSizeRow-(nExtSizeRow-i-1)-1, nExtSizeCol-j-1, pSrcData->m_nSizeCol);
-				DATA2D(pResultData->m_pData2D, pResultData->m_nSizeRow-i-1, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, nExtSizeRow-i-1, pSrcData->m_nSizeCol-(nExtSizeCol-j-1)-1, pSrcData->m_nSizeCol);
-				DATA2D(pResultData->m_pData2D, pResultData->m_nSizeRow-i-1, pResultData->m_nSizeCol-j-1, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, nExtSizeRow-i-1, nExtSizeCol-j-1, pSrcData->m_nSizeCol);
+				DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, pSrcData->height-(nExtSizeRow-i-1)-1, pSrcData->width-(nExtSizeCol-j-1)-1, pSrcData->width);
+				DATA2D(pResultData->data, i, pResultData->width-j-1, pResultData->width) = DATA2D(pSrcData->data, pSrcData->height-(nExtSizeRow-i-1)-1, nExtSizeCol-j-1, pSrcData->width);
+				DATA2D(pResultData->data, pResultData->height-i-1, j, pResultData->width) = DATA2D(pSrcData->data, nExtSizeRow-i-1, pSrcData->width-(nExtSizeCol-j-1)-1, pSrcData->width);
+				DATA2D(pResultData->data, pResultData->height-i-1, pResultData->width-j-1, pResultData->width) = DATA2D(pSrcData->data, nExtSizeRow-i-1, nExtSizeCol-j-1, pSrcData->width);
 			}
 		for (i = 0; i < nExtSizeRow; i++)
-			for (j = nExtSizeCol; j < pResultData->m_nSizeCol-nExtSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, pSrcData->m_nSizeRow-(nExtSizeRow-i), j-nExtSizeCol, pSrcData->m_nSizeCol);
-				DATA2D(pResultData->m_pData2D, pResultData->m_nSizeRow-1-i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, nExtSizeRow-i-1, j-nExtSizeCol, pSrcData->m_nSizeCol);
+			for (j = nExtSizeCol; j < pResultData->width-nExtSizeCol; j++) {
+				DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, pSrcData->height-(nExtSizeRow-i), j-nExtSizeCol, pSrcData->width);
+				DATA2D(pResultData->data, pResultData->height-1-i, j, pResultData->width) = DATA2D(pSrcData->data, nExtSizeRow-i-1, j-nExtSizeCol, pSrcData->width);
 			}
-		for (i = nExtSizeRow; i < pResultData->m_nSizeRow-nExtSizeRow; i++)
+		for (i = nExtSizeRow; i < pResultData->height-nExtSizeRow; i++)
 			for (j = 0; j < nExtSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, i-nExtSizeRow, pSrcData->m_nSizeCol-(nExtSizeCol-j), pSrcData->m_nSizeCol);
-				DATA2D(pResultData->m_pData2D, i, pResultData->m_nSizeCol-1-j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, i-nExtSizeRow, nExtSizeCol-j-1, pSrcData->m_nSizeCol);
+				DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, i-nExtSizeRow, pSrcData->width-(nExtSizeCol-j), pSrcData->width);
+				DATA2D(pResultData->data, i, pResultData->width-1-j, pResultData->width) = DATA2D(pSrcData->data, i-nExtSizeRow, nExtSizeCol-j-1, pSrcData->width);
 			}
 		break;
 	default:	// 默认对称延拓
 		for (i = 0; i < nExtSizeRow; i++)
 			for (j = 0; j < nExtSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, nExtSizeRow-i-1, nExtSizeCol-j-1, pSrcData->m_nSizeCol);
-				DATA2D(pResultData->m_pData2D, i, pResultData->m_nSizeCol-j-1, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, nExtSizeRow-i-1, pSrcData->m_nSizeCol-(nExtSizeCol-j-1)-1, pSrcData->m_nSizeCol);
-				DATA2D(pResultData->m_pData2D, pResultData->m_nSizeRow-i-1, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, pSrcData->m_nSizeRow-(nExtSizeRow-i-1)-1, nExtSizeCol-j-1, pSrcData->m_nSizeCol);
-				DATA2D(pResultData->m_pData2D, pResultData->m_nSizeRow-i-1, pResultData->m_nSizeCol-j-1, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, pSrcData->m_nSizeRow-(nExtSizeRow-i-1)-1, pSrcData->m_nSizeCol-(nExtSizeCol-j-1)-1, pSrcData->m_nSizeCol);
+				DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, nExtSizeRow-i-1, nExtSizeCol-j-1, pSrcData->width);
+				DATA2D(pResultData->data, i, pResultData->width-j-1, pResultData->width) = DATA2D(pSrcData->data, nExtSizeRow-i-1, pSrcData->width-(nExtSizeCol-j-1)-1, pSrcData->width);
+				DATA2D(pResultData->data, pResultData->height-i-1, j, pResultData->width) = DATA2D(pSrcData->data, pSrcData->height-(nExtSizeRow-i-1)-1, nExtSizeCol-j-1, pSrcData->width);
+				DATA2D(pResultData->data, pResultData->height-i-1, pResultData->width-j-1, pResultData->width) = DATA2D(pSrcData->data, pSrcData->height-(nExtSizeRow-i-1)-1, pSrcData->width-(nExtSizeCol-j-1)-1, pSrcData->width);
 			}
 		for (i = 0; i < nExtSizeRow; i++)
-			for (j = nExtSizeCol; j < pResultData->m_nSizeCol-nExtSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, nExtSizeRow-i-1, j-nExtSizeCol, pSrcData->m_nSizeCol);
-				DATA2D(pResultData->m_pData2D, pResultData->m_nSizeRow-1-i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, pSrcData->m_nSizeRow-(nExtSizeRow-i), j-nExtSizeCol, pSrcData->m_nSizeCol);
+			for (j = nExtSizeCol; j < pResultData->width-nExtSizeCol; j++) {
+				DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, nExtSizeRow-i-1, j-nExtSizeCol, pSrcData->width);
+				DATA2D(pResultData->data, pResultData->height-1-i, j, pResultData->width) = DATA2D(pSrcData->data, pSrcData->height-(nExtSizeRow-i), j-nExtSizeCol, pSrcData->width);
 			}
-		for (i = nExtSizeRow; i < pResultData->m_nSizeRow-nExtSizeRow; i++)
+		for (i = nExtSizeRow; i < pResultData->height-nExtSizeRow; i++)
 			for (j = 0; j < nExtSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, i-nExtSizeRow, nExtSizeCol-j-1, pSrcData->m_nSizeCol);
-				DATA2D(pResultData->m_pData2D, i, pResultData->m_nSizeCol-1-j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, i-nExtSizeRow, pSrcData->m_nSizeCol-(nExtSizeCol-j), pSrcData->m_nSizeCol);
+				DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, i-nExtSizeRow, nExtSizeCol-j-1, pSrcData->width);
+				DATA2D(pResultData->data, i, pResultData->width-1-j, pResultData->width) = DATA2D(pSrcData->data, i-nExtSizeRow, pSrcData->width-(nExtSizeCol-j), pSrcData->width);
 			}
 	}
 
@@ -304,16 +304,16 @@ double * SerialReverse(double * pSrcSerial, int nSerialLen)
 }
 
 /* 一维卷积 */
-DBDataPanel2D * CONV(double * pSerialA, double * pSerialB, int nLengthA, int nLengthB, int nConvType)
+MATRIX * CONV(double * pSerialA, double * pSerialB, int nLengthA, int nLengthB, int nConvType)
 {
 	int i, j, k;
 	int nLengthC;
 	int nLenTemp;
 	double * pSerialTemp = NULL;
 	double * pResultTemp = NULL;
-	DBDataPanel2D * pResultData = NULL;
+	MATRIX * pResultData = NULL;
 
-	pResultData = (DBDataPanel2D *)calloc(1, sizeof(DBDataPanel2D));
+	pResultData = (MATRIX *)calloc(1, sizeof(MATRIX));
 	if (!pResultData)
 		exit(1);
 
@@ -330,13 +330,13 @@ DBDataPanel2D * CONV(double * pSerialA, double * pSerialB, int nLengthA, int nLe
 		exit(1);
 	}
 
-	pResultData->m_nSizeRow = 1;
+	pResultData->height = 1;
 	if (nConvType == CONVT_SAME) 
-		pResultData->m_nSizeCol = nLengthA;
+		pResultData->width = nLengthA;
 	else
-		pResultData->m_nSizeCol = nLengthC;
-	pResultData->m_pData2D = (double * )calloc(pResultData->m_nSizeCol, sizeof(double));
-	if (!pResultData->m_pData2D) {
+		pResultData->width = nLengthC;
+	pResultData->data = (double * )calloc(pResultData->width, sizeof(double));
+	if (!pResultData->data) {
 		if (!pSerialTemp)	free(pSerialTemp);
 		if (!pResultTemp)	free(pResultTemp);
 		DDP_FREE(pResultData);
@@ -363,24 +363,24 @@ DBDataPanel2D * CONV(double * pSerialA, double * pSerialB, int nLengthA, int nLe
 	switch (nConvType) {
 	case CONVT_FULL:
 		for (i = 0; i < nLengthC; i++)
-			pResultData->m_pData2D[i] = pResultTemp[i];
+			pResultData->data[i] = pResultTemp[i];
 		break;
 	case CONVT_SAME:
 		for (i = 0; i < nLengthA; i++)
-			pResultData->m_pData2D[i] = pResultTemp[(nLengthC-nLengthA)/2+i];
+			pResultData->data[i] = pResultTemp[(nLengthC-nLengthA)/2+i];
 		break;
 	case CONVT_VALID:
 		i = 0;
 		while (i < nLengthC && pResultTemp[i] == 0)	i++;
 		j = 0;
 		while (j < nLengthC && pResultTemp[nLengthC-j-1] == 0)	j++;
-		pResultData->m_nSizeCol = nLengthC-i-j;
-		for (k = 0; k < pResultData->m_nSizeCol; k++)
-			pResultData->m_pData2D[k] = pResultTemp[k+i];
+		pResultData->width = nLengthC-i-j;
+		for (k = 0; k < pResultData->width; k++)
+			pResultData->data[k] = pResultTemp[k+i];
 		break;
 	default:
 		for (i = 0; i < nLengthC; i++)
-			pResultData->m_pData2D[i] = pResultTemp[i];
+			pResultData->data[i] = pResultTemp[i];
 	}
 
 	free(pSerialTemp);
@@ -390,60 +390,60 @@ DBDataPanel2D * CONV(double * pSerialA, double * pSerialB, int nLengthA, int nLe
 
 
 /* 二维卷积 */
-DBDataPanel2D * CONV2D(DBDataPanel2D * pSrcData, double * pFilter, int nFilterLen, int nRowOrCol, int nConvType)
+MATRIX * CONV2D(MATRIX * pSrcData, double * pFilter, int nFilterLen, int nRowOrCol, int nConvType)
 {
 	int i, j;
-	DBDataPanel2D * pResultData = NULL;
+	MATRIX * pResultData = NULL;
 	double * pTempSerialA = NULL, * pTempSerialB = NULL;
-	DBDataPanel2D * pTempSerialC = NULL;
+	MATRIX * pTempSerialC = NULL;
 
 	if (!pSrcData || !pFilter)
 		exit(1);
 
-	pResultData = (DBDataPanel2D *)calloc(1, sizeof(DBDataPanel2D));
+	pResultData = (MATRIX *)calloc(1, sizeof(MATRIX));
 	if (!pResultData)
 		exit(1);
 	
 	if (nConvType == CONVT_FULL && nRowOrCol == DIR_ROW) {
-		pTempSerialA = (double *) calloc(pSrcData->m_nSizeCol, sizeof(double));
-		pResultData->m_nSizeRow = pSrcData->m_nSizeRow;
-		pResultData->m_nSizeCol = pSrcData->m_nSizeCol+nFilterLen-1;
+		pTempSerialA = (double *) calloc(pSrcData->width, sizeof(double));
+		pResultData->height = pSrcData->height;
+		pResultData->width = pSrcData->width+nFilterLen-1;
 	} else if (nConvType == CONVT_FULL && nRowOrCol == DIR_COL) {
-		pTempSerialA = (double *) calloc(pSrcData->m_nSizeRow, sizeof(double));
-		pResultData->m_nSizeRow = pSrcData->m_nSizeRow+nFilterLen-1;
-		pResultData->m_nSizeCol = pSrcData->m_nSizeCol;
+		pTempSerialA = (double *) calloc(pSrcData->height, sizeof(double));
+		pResultData->height = pSrcData->height+nFilterLen-1;
+		pResultData->width = pSrcData->width;
 	} else if (nConvType == CONVT_SAME && nRowOrCol == DIR_ROW) {
-		pTempSerialA = (double *) calloc(pSrcData->m_nSizeCol, sizeof(double));
-		pResultData->m_nSizeRow = pSrcData->m_nSizeRow;
-		pResultData->m_nSizeCol = pSrcData->m_nSizeCol;
+		pTempSerialA = (double *) calloc(pSrcData->width, sizeof(double));
+		pResultData->height = pSrcData->height;
+		pResultData->width = pSrcData->width;
 	} else if (nConvType == CONVT_SAME && nRowOrCol == DIR_COL) {
-		pTempSerialA = (double *) calloc(pSrcData->m_nSizeRow, sizeof(double));
-		pResultData->m_nSizeRow = pSrcData->m_nSizeRow;
-		pResultData->m_nSizeCol = pSrcData->m_nSizeCol;
+		pTempSerialA = (double *) calloc(pSrcData->height, sizeof(double));
+		pResultData->height = pSrcData->height;
+		pResultData->width = pSrcData->width;
 	}
-	pResultData->m_pData2D = (double *) calloc(pResultData->m_nSizeRow*pResultData->m_nSizeCol, sizeof(double));	
-	if (!pResultData->m_pData2D || !pTempSerialA) {
+	pResultData->data = (double *) calloc(pResultData->height*pResultData->width, sizeof(double));	
+	if (!pResultData->data || !pTempSerialA) {
 		DDP_FREE(pResultData);
 		exit(1);
 	}
 	pTempSerialB = pFilter;
 
 	if (nRowOrCol == DIR_ROW) {
-		for (i = 0; i < pResultData->m_nSizeRow; i++) {
-			for (j = 0; j < pSrcData->m_nSizeCol; j++)
-				pTempSerialA[j] = DATA2D(pSrcData->m_pData2D, i, j, pSrcData->m_nSizeCol);
-			pTempSerialC = CONV(pTempSerialA, pTempSerialB, pSrcData->m_nSizeCol, nFilterLen, nConvType);
-			for (j = 0; j < pResultData->m_nSizeCol; j++)
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = pTempSerialC->m_pData2D[j];
+		for (i = 0; i < pResultData->height; i++) {
+			for (j = 0; j < pSrcData->width; j++)
+				pTempSerialA[j] = DATA2D(pSrcData->data, i, j, pSrcData->width);
+			pTempSerialC = CONV(pTempSerialA, pTempSerialB, pSrcData->width, nFilterLen, nConvType);
+			for (j = 0; j < pResultData->width; j++)
+				DATA2D(pResultData->data, i, j, pResultData->width) = pTempSerialC->data[j];
 			DDP_FREE(pTempSerialC);
 		}
 	} else {
-		for (j = 0; j < pResultData->m_nSizeCol; j++) {
-			for (i = 0; i < pSrcData->m_nSizeRow; i++)
-				pTempSerialA[i] = DATA2D(pSrcData->m_pData2D, i, j, pSrcData->m_nSizeCol);
-			pTempSerialC = CONV(pTempSerialA, pTempSerialB, pSrcData->m_nSizeRow, nFilterLen, nConvType);
-			for (i = 0; i < pResultData->m_nSizeRow; i++)
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = pTempSerialC->m_pData2D[i];
+		for (j = 0; j < pResultData->width; j++) {
+			for (i = 0; i < pSrcData->height; i++)
+				pTempSerialA[i] = DATA2D(pSrcData->data, i, j, pSrcData->width);
+			pTempSerialC = CONV(pTempSerialA, pTempSerialB, pSrcData->height, nFilterLen, nConvType);
+			for (i = 0; i < pResultData->height; i++)
+				DATA2D(pResultData->data, i, j, pResultData->width) = pTempSerialC->data[i];
 			DDP_FREE(pTempSerialC);
 		}
 	}
@@ -454,62 +454,62 @@ DBDataPanel2D * CONV2D(DBDataPanel2D * pSrcData, double * pFilter, int nFilterLe
 
 
 /* 下抽样 */
-DBDataPanel2D * DYADDOWN(DBDataPanel2D * pSrcData, int nEvenOrOdd, int nRowOrCol)
+MATRIX * DYADDOWN(MATRIX * pSrcData, int nEvenOrOdd, int nRowOrCol)
 {
 	int i, j;
-	DBDataPanel2D * pResultData = NULL;
+	MATRIX * pResultData = NULL;
 
-	pResultData = (DBDataPanel2D *)calloc(1, sizeof(DBDataPanel2D));
+	pResultData = (MATRIX *)calloc(1, sizeof(MATRIX));
 	if (!pResultData)
 		exit(1);
 	
 	if (nEvenOrOdd == DYAD_EVEN && nRowOrCol == DIR_ROW) {
-		pResultData->m_nSizeRow = pSrcData->m_nSizeRow/2;
-		pResultData->m_nSizeCol = pSrcData->m_nSizeCol;
-		pResultData->m_pData2D = (double *) calloc(pResultData->m_nSizeRow*pResultData->m_nSizeCol, sizeof(double));
-		if (!pResultData->m_pData2D) {
+		pResultData->height = pSrcData->height/2;
+		pResultData->width = pSrcData->width;
+		pResultData->data = (double *) calloc(pResultData->height*pResultData->width, sizeof(double));
+		if (!pResultData->data) {
 			DDP_FREE(pResultData);
 			exit(1);
 		}
-		for (i = 0; i < pResultData->m_nSizeRow; i++)
-			for (j = 0; j < pResultData->m_nSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, i*2+1, j, pSrcData->m_nSizeCol);
+		for (i = 0; i < pResultData->height; i++)
+			for (j = 0; j < pResultData->width; j++) {
+				DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, i*2+1, j, pSrcData->width);
 			}
 	} else if (nEvenOrOdd == DYAD_EVEN && nRowOrCol == DIR_COL) {
-		pResultData->m_nSizeRow = pSrcData->m_nSizeRow;
-		pResultData->m_nSizeCol = pSrcData->m_nSizeCol/2;
-		pResultData->m_pData2D = (double *) calloc(pResultData->m_nSizeRow*pResultData->m_nSizeCol, sizeof(double));
-		if (!pResultData->m_pData2D) {
+		pResultData->height = pSrcData->height;
+		pResultData->width = pSrcData->width/2;
+		pResultData->data = (double *) calloc(pResultData->height*pResultData->width, sizeof(double));
+		if (!pResultData->data) {
 			DDP_FREE(pResultData);
 			exit(1);
 		}
-		for (i = 0; i < pResultData->m_nSizeRow; i++)
-			for (j = 0; j < pResultData->m_nSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, i, j*2+1, pSrcData->m_nSizeCol);
+		for (i = 0; i < pResultData->height; i++)
+			for (j = 0; j < pResultData->width; j++) {
+				DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, i, j*2+1, pSrcData->width);
 			}
 	} else if (nEvenOrOdd == DYAD_ODD && nRowOrCol == DIR_ROW) {
-		pResultData->m_nSizeRow = (pSrcData->m_nSizeRow+1)/2;
-		pResultData->m_nSizeCol = pSrcData->m_nSizeCol;
-		pResultData->m_pData2D = (double *) calloc(pResultData->m_nSizeRow*pResultData->m_nSizeCol, sizeof(double));
-		if (!pResultData->m_pData2D) {
+		pResultData->height = (pSrcData->height+1)/2;
+		pResultData->width = pSrcData->width;
+		pResultData->data = (double *) calloc(pResultData->height*pResultData->width, sizeof(double));
+		if (!pResultData->data) {
 			DDP_FREE(pResultData);
 			exit(1);
 		}
-		for (i = 0; i < pResultData->m_nSizeRow; i++)
-			for (j = 0; j < pResultData->m_nSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, i*2, j, pSrcData->m_nSizeCol);
+		for (i = 0; i < pResultData->height; i++)
+			for (j = 0; j < pResultData->width; j++) {
+				DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, i*2, j, pSrcData->width);
 			}
 	} else if (nEvenOrOdd == DYAD_ODD && nRowOrCol == DIR_COL) {
-		pResultData->m_nSizeRow = pSrcData->m_nSizeRow;
-		pResultData->m_nSizeCol = (pSrcData->m_nSizeCol+1)/2;
-		pResultData->m_pData2D = (double *) calloc(pResultData->m_nSizeRow*pResultData->m_nSizeCol, sizeof(double));
-		if (!pResultData->m_pData2D) {
+		pResultData->height = pSrcData->height;
+		pResultData->width = (pSrcData->width+1)/2;
+		pResultData->data = (double *) calloc(pResultData->height*pResultData->width, sizeof(double));
+		if (!pResultData->data) {
 			DDP_FREE(pResultData);
 			exit(1);
 		}
-		for (i = 0; i < pResultData->m_nSizeRow; i++)
-			for (j = 0; j < pResultData->m_nSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, i, j*2, pSrcData->m_nSizeCol);
+		for (i = 0; i < pResultData->height; i++)
+			for (j = 0; j < pResultData->width; j++) {
+				DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, i, j*2, pSrcData->width);
 			}
 	}
 	return pResultData;
@@ -517,74 +517,74 @@ DBDataPanel2D * DYADDOWN(DBDataPanel2D * pSrcData, int nEvenOrOdd, int nRowOrCol
 
 
 /* 插值 */
-DBDataPanel2D * DYADUP(DBDataPanel2D * pSrcData, int nEvenOrOdd, int nRowOrCol)
+MATRIX * DYADUP(MATRIX * pSrcData, int nEvenOrOdd, int nRowOrCol)
 {
 	int i, j;
-	DBDataPanel2D * pResultData = NULL;
+	MATRIX * pResultData = NULL;
 
-	pResultData = (DBDataPanel2D *)calloc(1, sizeof(DBDataPanel2D));
+	pResultData = (MATRIX *)calloc(1, sizeof(MATRIX));
 	if (!pResultData)
 		exit(1);
 	
 	if (nEvenOrOdd == DYAD_EVEN && nRowOrCol == DIR_ROW) {
-		pResultData->m_nSizeRow = pSrcData->m_nSizeRow*2;
-		pResultData->m_nSizeCol = pSrcData->m_nSizeCol;
-		pResultData->m_pData2D = (double *) calloc(pResultData->m_nSizeRow*pResultData->m_nSizeCol, sizeof(double));
-		if (!pResultData->m_pData2D) {
+		pResultData->height = pSrcData->height*2;
+		pResultData->width = pSrcData->width;
+		pResultData->data = (double *) calloc(pResultData->height*pResultData->width, sizeof(double));
+		if (!pResultData->data) {
 			DDP_FREE(pResultData);
 			exit(1);
 		}
-		for (i = 0; i < pResultData->m_nSizeRow; i++)
-			for (j = 0; j < pResultData->m_nSizeCol; j++) {
+		for (i = 0; i < pResultData->height; i++)
+			for (j = 0; j < pResultData->width; j++) {
 				if (i%2 == 0)
-					DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, i/2, j, pSrcData->m_nSizeCol);
+					DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, i/2, j, pSrcData->width);
 				else
-					DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = 0;
+					DATA2D(pResultData->data, i, j, pResultData->width) = 0;
 			}
 	} else if (nEvenOrOdd == DYAD_EVEN && nRowOrCol == DIR_COL) {
-		pResultData->m_nSizeRow = pSrcData->m_nSizeRow;
-		pResultData->m_nSizeCol = pSrcData->m_nSizeCol*2;
-		pResultData->m_pData2D = (double *) calloc(pResultData->m_nSizeRow*pResultData->m_nSizeCol, sizeof(double));
-		if (!pResultData->m_pData2D) {
+		pResultData->height = pSrcData->height;
+		pResultData->width = pSrcData->width*2;
+		pResultData->data = (double *) calloc(pResultData->height*pResultData->width, sizeof(double));
+		if (!pResultData->data) {
 			DDP_FREE(pResultData);
 			exit(1);
 		}
-		for (i = 0; i < pResultData->m_nSizeRow; i++)
-			for (j = 0; j < pResultData->m_nSizeCol; j++) {
+		for (i = 0; i < pResultData->height; i++)
+			for (j = 0; j < pResultData->width; j++) {
 				if (j%2 == 0)
-					DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, i, j/2, pSrcData->m_nSizeCol);
+					DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, i, j/2, pSrcData->width);
 				else
-					DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = 0;
+					DATA2D(pResultData->data, i, j, pResultData->width) = 0;
 			}
 	} else if (nEvenOrOdd == DYAD_ODD && nRowOrCol == DIR_ROW) {
-		pResultData->m_nSizeRow = pSrcData->m_nSizeRow*2;
-		pResultData->m_nSizeCol = pSrcData->m_nSizeCol;
-		pResultData->m_pData2D = (double *) calloc(pResultData->m_nSizeRow*pResultData->m_nSizeCol, sizeof(double));
-		if (!pResultData->m_pData2D) {
+		pResultData->height = pSrcData->height*2;
+		pResultData->width = pSrcData->width;
+		pResultData->data = (double *) calloc(pResultData->height*pResultData->width, sizeof(double));
+		if (!pResultData->data) {
 			DDP_FREE(pResultData);
 			exit(1);
 		}
-		for (i = 0; i < pResultData->m_nSizeRow; i++)
-			for (j = 0; j < pResultData->m_nSizeCol; j++) {
+		for (i = 0; i < pResultData->height; i++)
+			for (j = 0; j < pResultData->width; j++) {
 				if (i%2 != 0)
-					DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, i/2, j, pSrcData->m_nSizeCol);
+					DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, i/2, j, pSrcData->width);
 				else
-					DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = 0;
+					DATA2D(pResultData->data, i, j, pResultData->width) = 0;
 			}
 	} else if (nEvenOrOdd == DYAD_ODD && nRowOrCol == DIR_COL) {
-		pResultData->m_nSizeRow = pSrcData->m_nSizeRow;
-		pResultData->m_nSizeCol = pSrcData->m_nSizeCol*2;
-		pResultData->m_pData2D = (double *) calloc(pResultData->m_nSizeRow*pResultData->m_nSizeCol, sizeof(double));
-		if (!pResultData->m_pData2D) {
+		pResultData->height = pSrcData->height;
+		pResultData->width = pSrcData->width*2;
+		pResultData->data = (double *) calloc(pResultData->height*pResultData->width, sizeof(double));
+		if (!pResultData->data) {
 			DDP_FREE(pResultData);
 			exit(1);
 		}
-		for (i = 0; i < pResultData->m_nSizeRow; i++)
-			for (j = 0; j < pResultData->m_nSizeCol; j++) {
+		for (i = 0; i < pResultData->height; i++)
+			for (j = 0; j < pResultData->width; j++) {
 				if (j%2 != 0)
-					DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, i, j/2, pSrcData->m_nSizeCol);
+					DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, i, j/2, pSrcData->width);
 				else
-					DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = 0;
+					DATA2D(pResultData->data, i, j, pResultData->width) = 0;
 			}
 	}
 	return pResultData;
@@ -592,30 +592,30 @@ DBDataPanel2D * DYADUP(DBDataPanel2D * pSrcData, int nEvenOrOdd, int nRowOrCol)
 
 
 /* 矩阵重定义行列数 */
-DBDataPanel2D * ReShape(DBDataPanel2D * pSrcData, int nNewSizeRow, int nNewSizeCol)
+MATRIX * ReShape(MATRIX * pSrcData, int nNewSizeRow, int nNewSizeCol)
 {
 	int i, j, k;
-	DBDataPanel2D * pResultData = NULL;
+	MATRIX * pResultData = NULL;
 	
-	if (nNewSizeRow*nNewSizeCol != (pSrcData->m_nSizeRow)*(pSrcData->m_nSizeCol))
+	if (nNewSizeRow*nNewSizeCol != (pSrcData->height)*(pSrcData->width))
 		exit(1);
 
-	pResultData = (DBDataPanel2D *)calloc(1, sizeof(DBDataPanel2D));
+	pResultData = (MATRIX *)calloc(1, sizeof(MATRIX));
 	if (!pResultData)
 		exit(1);
 
-	pResultData->m_nSizeRow = nNewSizeRow;
-	pResultData->m_nSizeCol = nNewSizeCol;
-	pResultData->m_pData2D = (double *) calloc(pResultData->m_nSizeRow*pResultData->m_nSizeCol, sizeof(double));
-	if (!pResultData->m_pData2D) {
+	pResultData->height = nNewSizeRow;
+	pResultData->width = nNewSizeCol;
+	pResultData->data = (double *) calloc(pResultData->height*pResultData->width, sizeof(double));
+	if (!pResultData->data) {
 		DDP_FREE(pResultData);
 		exit(1);
 	}
 	
 	k = 0;
-	for (i = 0; i < pResultData->m_nSizeRow; i++)
-		for (j = 0; j < pResultData->m_nSizeCol; j++) {
-			DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = pSrcData->m_pData2D[k];
+	for (i = 0; i < pResultData->height; i++)
+		for (j = 0; j < pResultData->width; j++) {
+			DATA2D(pResultData->data, i, j, pResultData->width) = pSrcData->data[k];
 			k++;
 		}
 
@@ -624,32 +624,32 @@ DBDataPanel2D * ReShape(DBDataPanel2D * pSrcData, int nNewSizeRow, int nNewSizeC
 
 
 /* 截取子矩阵 */
-DBDataPanel2D * GetSubMatrix(DBDataPanel2D * pSrcData, int nSubSizeRow, int nSubSizeCol)
+MATRIX * GetSubMatrix(MATRIX * pSrcData, int nSubSizeRow, int nSubSizeCol)
 {
 	int i, j;
 	int nOffsetRow, nOffsetCol;
-	DBDataPanel2D * pResultData = NULL;
+	MATRIX * pResultData = NULL;
 
-	if (!(nSubSizeRow <= pSrcData->m_nSizeRow && nSubSizeCol <= pSrcData->m_nSizeCol))
+	if (!(nSubSizeRow <= pSrcData->height && nSubSizeCol <= pSrcData->width))
 		exit(1);
 
-	pResultData = (DBDataPanel2D *)calloc(1, sizeof(DBDataPanel2D));
+	pResultData = (MATRIX *)calloc(1, sizeof(MATRIX));
 	if (!pResultData)
 		exit(1);
 
-	pResultData->m_nSizeRow = nSubSizeRow;
-	pResultData->m_nSizeCol = nSubSizeCol;
-	pResultData->m_pData2D = (double *) calloc(pResultData->m_nSizeRow*pResultData->m_nSizeCol, sizeof(double));
-	if (!pResultData->m_pData2D) {
+	pResultData->height = nSubSizeRow;
+	pResultData->width = nSubSizeCol;
+	pResultData->data = (double *) calloc(pResultData->height*pResultData->width, sizeof(double));
+	if (!pResultData->data) {
 		DDP_FREE(pResultData);
 		exit(1);
 	}
 	
-	nOffsetRow = (pSrcData->m_nSizeRow-nSubSizeRow)/2;
-	nOffsetCol = (pSrcData->m_nSizeCol-nSubSizeCol)/2;
-	for (i = 0; i < pResultData->m_nSizeRow; i++)
-		for (j = 0; j < pResultData->m_nSizeCol; j++) {
-			DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcData->m_pData2D, nOffsetRow+i, nOffsetCol+j, pSrcData->m_nSizeCol);
+	nOffsetRow = (pSrcData->height-nSubSizeRow)/2;
+	nOffsetCol = (pSrcData->width-nSubSizeCol)/2;
+	for (i = 0; i < pResultData->height; i++)
+		for (j = 0; j < pResultData->width; j++) {
+			DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcData->data, nOffsetRow+i, nOffsetCol+j, pSrcData->width);
 		}
 
 	return pResultData;
@@ -657,69 +657,69 @@ DBDataPanel2D * GetSubMatrix(DBDataPanel2D * pSrcData, int nSubSizeRow, int nSub
 
 
 /* 拷贝矩阵 */
-DBDataPanel2D * CopyMatrix(DBDataPanel2D * pSrcMatrix)
+MATRIX * CopyMatrix(MATRIX * pSrcMatrix)
 {
-	return(GetSubMatrix(pSrcMatrix, pSrcMatrix->m_nSizeRow, pSrcMatrix->m_nSizeCol));
+	return(GetSubMatrix(pSrcMatrix, pSrcMatrix->height, pSrcMatrix->width));
 }
 
 
 /* 拼接矩阵 */
-DBDataPanel2D * SpliceMatrix(DBDataPanel2D * pSrcMatrixA, DBDataPanel2D * pSrcMatrixB, int nRowOrCol)
+MATRIX * SpliceMatrix(MATRIX * pSrcMatrixA, MATRIX * pSrcMatrixB, int nRowOrCol)
 {
 	int i, j;
-	DBDataPanel2D * pResultData = NULL;
+	MATRIX * pResultData = NULL;
 	
 	if (!pSrcMatrixA || !pSrcMatrixB)
 		exit(1);
 
-	pResultData = (DBDataPanel2D *)calloc(1, sizeof(DBDataPanel2D));
+	pResultData = (MATRIX *)calloc(1, sizeof(MATRIX));
 	if (!pResultData)
 		exit(1);
 
 	if (nRowOrCol == DIR_ROW) {
-		if (pSrcMatrixA->m_nSizeRow != pSrcMatrixB->m_nSizeRow) {
+		if (pSrcMatrixA->height != pSrcMatrixB->height) {
 			DDP_FREE(pResultData);
 			exit(1);
 		}
 
-		pResultData->m_nSizeRow = pSrcMatrixA->m_nSizeRow;
-		pResultData->m_nSizeCol = pSrcMatrixA->m_nSizeCol+pSrcMatrixB->m_nSizeCol;
-		pResultData->m_pData2D = (double *) calloc(pResultData->m_nSizeRow*pResultData->m_nSizeCol, sizeof(double));
-		if (!pResultData->m_pData2D) {
+		pResultData->height = pSrcMatrixA->height;
+		pResultData->width = pSrcMatrixA->width+pSrcMatrixB->width;
+		pResultData->data = (double *) calloc(pResultData->height*pResultData->width, sizeof(double));
+		if (!pResultData->data) {
 			DDP_FREE(pResultData);
 			exit(1);
 		}
 	
-		for (i = 0; i < pResultData->m_nSizeRow; i++)
-			for (j = 0; j < pSrcMatrixA->m_nSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcMatrixA->m_pData2D, i, j, pSrcMatrixA->m_nSizeCol);
+		for (i = 0; i < pResultData->height; i++)
+			for (j = 0; j < pSrcMatrixA->width; j++) {
+				DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcMatrixA->data, i, j, pSrcMatrixA->width);
 			}
-		for (i = 0; i < pResultData->m_nSizeRow; i++)
-			for (j = 0; j < pSrcMatrixB->m_nSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j+pSrcMatrixA->m_nSizeCol, pResultData->m_nSizeCol) = DATA2D(pSrcMatrixB->m_pData2D, i, j, pSrcMatrixB->m_nSizeCol);
+		for (i = 0; i < pResultData->height; i++)
+			for (j = 0; j < pSrcMatrixB->width; j++) {
+				DATA2D(pResultData->data, i, j+pSrcMatrixA->width, pResultData->width) = DATA2D(pSrcMatrixB->data, i, j, pSrcMatrixB->width);
 			}
 
 	} else {
-		if (pSrcMatrixA->m_nSizeCol != pSrcMatrixB->m_nSizeCol) {
+		if (pSrcMatrixA->width != pSrcMatrixB->width) {
 			DDP_FREE(pResultData);
 			exit(1);
 		}
 
-		pResultData->m_nSizeRow = pSrcMatrixA->m_nSizeRow+pSrcMatrixB->m_nSizeRow;
-		pResultData->m_nSizeCol = pSrcMatrixA->m_nSizeCol;
-		pResultData->m_pData2D = (double *) calloc(pResultData->m_nSizeRow*pResultData->m_nSizeCol, sizeof(double));
-		if (!pResultData->m_pData2D) {
+		pResultData->height = pSrcMatrixA->height+pSrcMatrixB->height;
+		pResultData->width = pSrcMatrixA->width;
+		pResultData->data = (double *) calloc(pResultData->height*pResultData->width, sizeof(double));
+		if (!pResultData->data) {
 			DDP_FREE(pResultData);
 			exit(1);
 		}
 	
-		for (i = 0; i < pSrcMatrixA->m_nSizeRow; i++)
-			for (j = 0; j < pResultData->m_nSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = DATA2D(pSrcMatrixA->m_pData2D, i, j, pSrcMatrixA->m_nSizeCol);
+		for (i = 0; i < pSrcMatrixA->height; i++)
+			for (j = 0; j < pResultData->width; j++) {
+				DATA2D(pResultData->data, i, j, pResultData->width) = DATA2D(pSrcMatrixA->data, i, j, pSrcMatrixA->width);
 			}
-		for (i = 0; i < pSrcMatrixB->m_nSizeRow; i++)
-			for (j = 0; j < pResultData->m_nSizeCol; j++) {
-				DATA2D(pResultData->m_pData2D, i+pSrcMatrixA->m_nSizeRow, j, pResultData->m_nSizeCol) = DATA2D(pSrcMatrixB->m_pData2D, i, j, pSrcMatrixB->m_nSizeCol);
+		for (i = 0; i < pSrcMatrixB->height; i++)
+			for (j = 0; j < pResultData->width; j++) {
+				DATA2D(pResultData->data, i+pSrcMatrixA->height, j, pResultData->width) = DATA2D(pSrcMatrixB->data, i, j, pSrcMatrixB->width);
 			}
 	}
 
@@ -728,36 +728,36 @@ DBDataPanel2D * SpliceMatrix(DBDataPanel2D * pSrcMatrixA, DBDataPanel2D * pSrcMa
 
 
 /* 矩阵求和 */
-DBDataPanel2D * SumMatrix(DBDataPanel2D * pSrcMatrixA, DBDataPanel2D * pSrcMatrixB)
+MATRIX * SumMatrix(MATRIX * pSrcMatrixA, MATRIX * pSrcMatrixB)
 {
 	int i, j;
-	DBDataPanel2D *pResultData = NULL;
+	MATRIX *pResultData = NULL;
 	
 	if (!pSrcMatrixA || !pSrcMatrixB)
 		exit(1);
 
-	if ((pSrcMatrixA->m_nSizeRow != pSrcMatrixB->m_nSizeRow) ||
-		(pSrcMatrixA->m_nSizeCol != pSrcMatrixB->m_nSizeCol))
+	if ((pSrcMatrixA->height != pSrcMatrixB->height) ||
+		(pSrcMatrixA->width != pSrcMatrixB->width))
 		exit(1);
 
-	pResultData = (DBDataPanel2D *)calloc(1, sizeof(DBDataPanel2D));
+	pResultData = (MATRIX *)calloc(1, sizeof(MATRIX));
 	if (!pResultData)
 		exit(1);
 
-	pResultData->m_nSizeRow = pSrcMatrixA->m_nSizeRow;
-	pResultData->m_nSizeCol = pSrcMatrixA->m_nSizeCol;
+	pResultData->height = pSrcMatrixA->height;
+	pResultData->width = pSrcMatrixA->width;
 	
-	pResultData->m_pData2D = (double *) calloc(pResultData->m_nSizeRow*pResultData->m_nSizeCol, sizeof(double));
-	if (!pResultData->m_pData2D) {
+	pResultData->data = (double *) calloc(pResultData->height*pResultData->width, sizeof(double));
+	if (!pResultData->data) {
 		DDP_FREE(pResultData);
 		exit(1);
 	}
 	
-	for (i = 0; i < pResultData->m_nSizeRow; i++)
-		for (j = 0; j < pResultData->m_nSizeCol; j++) {
-			DATA2D(pResultData->m_pData2D, i, j, pResultData->m_nSizeCol) = 
-				DATA2D(pSrcMatrixA->m_pData2D, i, j, pSrcMatrixA->m_nSizeCol)
-				+DATA2D(pSrcMatrixB->m_pData2D, i, j, pSrcMatrixB->m_nSizeCol);
+	for (i = 0; i < pResultData->height; i++)
+		for (j = 0; j < pResultData->width; j++) {
+			DATA2D(pResultData->data, i, j, pResultData->width) = 
+				DATA2D(pSrcMatrixA->data, i, j, pSrcMatrixA->width)
+				+DATA2D(pSrcMatrixB->data, i, j, pSrcMatrixB->width);
 		}
 
 	return pResultData;

@@ -10,7 +10,7 @@ fftw_complex *fft(fftw_complex *In_graph)
 {
 	if(four_graph == NULL)
 	{
-		four_graph = (fftw_complex *)malloc(sizeof(fftw_complex)*Height*Width-1);
+		four_graph = (fftw_complex *)malloc(sizeof(fftw_complex)*Height*Width);
 
 	}
 	fftw_plan forward;

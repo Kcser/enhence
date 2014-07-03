@@ -1,18 +1,18 @@
 #include "utilityFunWT.h"
 
-DBDataPanel2D * SubWaveRec2(WTCOEFSet * pSrcWTCoef, WaveletBASE * pWaveBase);
+MATRIX * SubWaveRec2(WTCOEFSet * pSrcWTCoef, WaveletBASE * pWaveBase);
 
-DBDataPanel2D * waveRec2(WTInfo * pSrcWTInfo)
+MATRIX * waveRec2(WTInfo * pSrcWTInfo)
 {
 	int i, j;
-	DBDataPanel2D * pTempCoefA_LL = NULL;
+	MATRIX * pTempCoefA_LL = NULL;
 	WaveletBASE * pWaveletBase = NULL;
-	DBDataPanel2D * pRecResult = NULL;
+	MATRIX * pRecResult = NULL;
 
 	WTCOEFSet WTCoefSet;
-	DBDataPanel2D pCoefPanel[4];
+	MATRIX pCoefPanel[4];
 
-	if (!(pRecResult = (DBDataPanel2D*)calloc(1, sizeof(DBDataPanel2D))))
+	if (!(pRecResult = (MATRIX*)calloc(1, sizeof(MATRIX))))
 		exit(1);
 	/* 根据nWaveType获取小波基的滤波器系数 */
 	if (!(pWaveletBase = SetWaveletBase(pSrcWTInfo->m_nWaveType))) {
@@ -25,13 +25,13 @@ DBDataPanel2D * waveRec2(WTInfo * pSrcWTInfo)
 	WTCoefSet.V_HL = &(pCoefPanel[2]);	WTCoefSet.D_HH = &(pCoefPanel[3]);
 
 	/* 获取最高层的小波系数，0-低通分量，1-水平分量，2-垂直分量，3-对角分量 */
-	pCoefPanel[0].m_pData2D = pSrcWTInfo->m_pC;
-	pCoefPanel[0].m_nSizeRow = DATA2D(pSrcWTInfo->m_pS, 0, 0, 2);
-	pCoefPanel[0].m_nSizeCol = DATA2D(pSrcWTInfo->m_pS, 0, 1, 2);
+	pCoefPanel[0].data = pSrcWTInfo->m_pC;
+	pCoefPanel[0].height = DATA2D(pSrcWTInfo->m_pS, 0, 0, 2);
+	pCoefPanel[0].width = DATA2D(pSrcWTInfo->m_pS, 0, 1, 2);
 	for (i = 1; i < 4; i++) {
-		pCoefPanel[i].m_pData2D = pCoefPanel[i-1].m_pData2D+pCoefPanel[i-1].m_nSizeRow*pCoefPanel[i-1].m_nSizeCol;
-		pCoefPanel[i].m_nSizeRow = DATA2D(pSrcWTInfo->m_pS, 1, 0, 2);
-		pCoefPanel[i].m_nSizeCol = DATA2D(pSrcWTInfo->m_pS, 1, 1, 2);
+		pCoefPanel[i].data = pCoefPanel[i-1].data+pCoefPanel[i-1].height*pCoefPanel[i-1].width;
+		pCoefPanel[i].height = DATA2D(pSrcWTInfo->m_pS, 1, 0, 2);
+		pCoefPanel[i].width = DATA2D(pSrcWTInfo->m_pS, 1, 1, 2);
 	}
 
 	for (i = 1; i<= pSrcWTInfo->m_nWTLevel; i++) {
@@ -42,11 +42,11 @@ DBDataPanel2D * waveRec2(WTInfo * pSrcWTInfo)
 			break;
 		for (j = 1; j < 4; j++) {
 			if (j == 1)
-				pCoefPanel[j].m_pData2D = pCoefPanel[3].m_pData2D+pCoefPanel[3].m_nSizeRow*pCoefPanel[3].m_nSizeCol;
+				pCoefPanel[j].data = pCoefPanel[3].data+pCoefPanel[3].height*pCoefPanel[3].width;
 			else
-				pCoefPanel[j].m_pData2D = pCoefPanel[j-1].m_pData2D+pCoefPanel[j-1].m_nSizeRow*pCoefPanel[j-1].m_nSizeCol;
-			pCoefPanel[j].m_nSizeRow = DATA2D(pSrcWTInfo->m_pS, i+1, 0, 2);
-			pCoefPanel[j].m_nSizeCol = DATA2D(pSrcWTInfo->m_pS, i+1, 1, 2);
+				pCoefPanel[j].data = pCoefPanel[j-1].data+pCoefPanel[j-1].height*pCoefPanel[j-1].width;
+			pCoefPanel[j].height = DATA2D(pSrcWTInfo->m_pS, i+1, 0, 2);
+			pCoefPanel[j].width = DATA2D(pSrcWTInfo->m_pS, i+1, 1, 2);
 		}
 	}
 
@@ -56,14 +56,14 @@ DBDataPanel2D * waveRec2(WTInfo * pSrcWTInfo)
 }
 
 
-DBDataPanel2D * SubWaveRec2(WTCOEFSet * pSrcWTCoef, WaveletBASE * pWaveBase)
+MATRIX * SubWaveRec2(WTCOEFSet * pSrcWTCoef, WaveletBASE * pWaveBase)
 {
-	DBDataPanel2D * pResultA_LL = NULL;
+	MATRIX * pResultA_LL = NULL;
 
-	DBDataPanel2D * pTempDataA_LL = NULL, * pTempDataH_LH = NULL, * pTempDataV_HL = NULL, * pTempDataD_HH = NULL;
-	DBDataPanel2D * pTempDataA_LL2 = NULL, * pTempDataH_LH2 = NULL, * pTempDataV_HL2 = NULL, * pTempDataD_HH2 = NULL;
-	DBDataPanel2D * pTempDataAH = NULL, * pTempDataVD = NULL;
-	DBDataPanel2D * pTempDataAH2 = NULL, * pTempDataVD2 = NULL;
+	MATRIX * pTempDataA_LL = NULL, * pTempDataH_LH = NULL, * pTempDataV_HL = NULL, * pTempDataD_HH = NULL;
+	MATRIX * pTempDataA_LL2 = NULL, * pTempDataH_LH2 = NULL, * pTempDataV_HL2 = NULL, * pTempDataD_HH2 = NULL;
+	MATRIX * pTempDataAH = NULL, * pTempDataVD = NULL;
+	MATRIX * pTempDataAH2 = NULL, * pTempDataVD2 = NULL;
 	
 	/* 行插值 */
 	pTempDataA_LL = DYADUP(pSrcWTCoef->A_LL, DYAD_ODD, DIR_ROW);
@@ -108,7 +108,7 @@ IntDataPanel2D * waveRec2Int(WTInfo * pSrcWTInfo)
 {
 	int i;
 	IntDataPanel2D * pRecResult = NULL;
-	DBDataPanel2D * pDBRecResult = NULL;
+	MATRIX * pDBRecResult = NULL;
 
 	if (!pSrcWTInfo)
 		exit(1);
@@ -120,16 +120,16 @@ IntDataPanel2D * waveRec2Int(WTInfo * pSrcWTInfo)
 		IDP_FREE(pRecResult);
 		exit(1);
 	}
-	pRecResult->m_nSizeRow = pDBRecResult->m_nSizeRow;
-	pRecResult->m_nSizeCol = pDBRecResult->m_nSizeCol;
+	pRecResult->height = pDBRecResult->height;
+	pRecResult->width = pDBRecResult->width;
 
-	if (!(pRecResult->m_pData2D = (int *)calloc(pRecResult->m_nSizeRow*pRecResult->m_nSizeCol, sizeof(int)))) {
+	if (!(pRecResult->data = (int *)calloc(pRecResult->height*pRecResult->width, sizeof(int)))) {
 		IDP_FREE(pRecResult);
 		DDP_FREE(pDBRecResult);
 	};
 
-	for (i = 0; i < (pRecResult->m_nSizeRow)*(pRecResult->m_nSizeCol); i++)
-		pRecResult->m_pData2D[i] = (unsigned int)pDBRecResult->m_pData2D[i];
+	for (i = 0; i < (pRecResult->height)*(pRecResult->width); i++)
+		pRecResult->data[i] = (unsigned int)pDBRecResult->data[i];
 
 	DDP_FREE(pDBRecResult);
 	return pRecResult;

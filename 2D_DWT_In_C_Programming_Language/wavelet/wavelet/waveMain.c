@@ -3,11 +3,7 @@
 #include "waveDec2.h"
 #include "waveRec2.h"
 
-/*
-	This copy is designed  by ShiLixing (shilx@mail.ustc.edu.cn)
-	from School of Information Science and Technology of USTC;
-	2013-01-15 All Rights Reserved.
-*/
+
 int main(int argc, char * argv[])
 {
 	int i, j, k;
@@ -18,9 +14,9 @@ int main(int argc, char * argv[])
 	int nImageRow, nImageCol;
 	FILE * fpImageDataFile = NULL;
 
-	int nCLen;
-	int nTest;
-	double dbTest;
+//	int nCLen;
+///	int nTest;
+//	double dbTest;
 
 	/* 读取数据 */
 	if ((fpImageDataFile = fopen("LENA.txt", "r")) == NULL) {
@@ -30,14 +26,14 @@ int main(int argc, char * argv[])
 	fscanf(fpImageDataFile, "%d", &nImageRow);
 	fscanf(fpImageDataFile, "%d", &nImageCol);
 	
-	ImageDataSrc.m_nSizeRow = nImageRow;
-	ImageDataSrc.m_nSizeCol = nImageCol;
-	ImageDataSrc.m_pData2D = (int *)calloc(nImageRow*nImageCol, sizeof(int));
-	if (ImageDataSrc.m_pData2D == NULL)
+	ImageDataSrc.height = nImageRow;
+	ImageDataSrc.width = nImageCol;
+	ImageDataSrc.data = (int *)calloc(nImageRow*nImageCol, sizeof(int));
+	if (ImageDataSrc.data == NULL)
 		return 1;
 
 	for (i = 0; i < nImageRow*nImageCol; i++)
-		fscanf(fpImageDataFile, "%d", &(ImageDataSrc.m_pData2D[i]));
+		fscanf(fpImageDataFile, "%d", &(ImageDataSrc.data[i]));
 	fclose(fpImageDataFile);
 	
 	/* 小波变换 */
@@ -92,10 +88,10 @@ int main(int argc, char * argv[])
 	/* 小波逆变换 */
 	printf("\n--------Inverse Result--------\n");
 	pImageDataRec = waveRec2Int(pImageDataDec);
-	for (i = 0; i < pImageDataRec->m_nSizeRow; i++) {
-		for (j = 0; j < pImageDataRec->m_nSizeCol; j++)
-			// nTest = DATA2D(pImageDataRec->m_pData2D, i, j, pImageDataRec->m_nSizeCol);
-			printf("%5d", DATA2D(pImageDataRec->m_pData2D, i, j, pImageDataRec->m_nSizeCol));
+	for (i = 0; i < pImageDataRec->height; i++) {
+		for (j = 0; j < pImageDataRec->width; j++)
+			// nTest = DATA2D(pImageDataRec->data, i, j, pImageDataRec->width);
+			printf("%5d", DATA2D(pImageDataRec->data, i, j, pImageDataRec->width));
 		printf("\n");
 	}
 

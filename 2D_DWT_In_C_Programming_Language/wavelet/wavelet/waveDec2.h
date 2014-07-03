@@ -1,15 +1,15 @@
 #include "utilityFunWT.h"
 #include "malloc.h"
 
-WTCOEFSet * SubWaveDec2(DBDataPanel2D * pSrcData, WaveletBASE * pWaveBase, int nExtType);
+WTCOEFSet * SubWaveDec2(MATRIX * pSrcData, WaveletBASE * pWaveBase, int nExtType);
 
-WTInfo * waveDec2(DBDataPanel2D * pSrcData, int nWTLevel, int nWaveType, int nExtType)
+WTInfo * waveDec2(MATRIX * pSrcData, int nWTLevel, int nWaveType, int nExtType)
 {
 	int i, j, k;
 	int nCoefLen;
 	WTInfo * pDecResult = NULL;
 
-	DBDataPanel2D pTempCoefPanel;
+	MATRIX pTempCoefPanel;
 	WTCOEFSet * * pWTCoefSet = NULL;
 	WaveletBASE * pWaveletBase = NULL;
 
@@ -36,24 +36,24 @@ WTInfo * waveDec2(DBDataPanel2D * pSrcData, int nWTLevel, int nWaveType, int nEx
 	}
 
 
-	pTempCoefPanel.m_nSizeRow = pSrcData->m_nSizeRow;
-	pTempCoefPanel.m_nSizeCol = pSrcData->m_nSizeCol;
-	pTempCoefPanel.m_pData2D = pSrcData->m_pData2D;
+	pTempCoefPanel.height = pSrcData->height;
+	pTempCoefPanel.width = pSrcData->width;
+	pTempCoefPanel.data = pSrcData->data;
 	for (i = 0; i < nWTLevel; i++) {
 		pWTCoefSet[i] = SubWaveDec2(&pTempCoefPanel, pWaveletBase, nExtType);
-		pTempCoefPanel.m_nSizeRow = pWTCoefSet[i]->A_LL->m_nSizeRow;
-		pTempCoefPanel.m_nSizeCol = pWTCoefSet[i]->A_LL->m_nSizeCol;
-		pTempCoefPanel.m_pData2D = pWTCoefSet[i]->A_LL->m_pData2D;
+		pTempCoefPanel.height = pWTCoefSet[i]->A_LL->height;
+		pTempCoefPanel.width = pWTCoefSet[i]->A_LL->width;
+		pTempCoefPanel.data = pWTCoefSet[i]->A_LL->data;
 	}
 
 	/* 统计小波系数的总长度 */
 	nCoefLen = 0;
 	for (i = 0; i < nWTLevel; i++) {
-		nCoefLen += pWTCoefSet[i]->H_LH->m_nSizeRow*pWTCoefSet[i]->H_LH->m_nSizeCol;
-		nCoefLen += pWTCoefSet[i]->V_HL->m_nSizeRow*pWTCoefSet[i]->V_HL->m_nSizeCol;
-		nCoefLen += pWTCoefSet[i]->D_HH->m_nSizeRow*pWTCoefSet[i]->D_HH->m_nSizeCol;
+		nCoefLen += pWTCoefSet[i]->H_LH->height*pWTCoefSet[i]->H_LH->width;
+		nCoefLen += pWTCoefSet[i]->V_HL->height*pWTCoefSet[i]->V_HL->width;
+		nCoefLen += pWTCoefSet[i]->D_HH->height*pWTCoefSet[i]->D_HH->width;
 		if (i == nWTLevel-1)
-			nCoefLen += pWTCoefSet[i]->A_LL->m_nSizeRow*pWTCoefSet[i]->A_LL->m_nSizeCol;
+			nCoefLen += pWTCoefSet[i]->A_LL->height*pWTCoefSet[i]->A_LL->width;
 	}
 
 	/* 收集小波分解系数 */
@@ -69,44 +69,44 @@ WTInfo * waveDec2(DBDataPanel2D * pSrcData, int nWTLevel, int nWaveType, int nEx
 	k = 0;
 	for (i = nWTLevel-1; i >= 0; i--) {
 		if (i == nWTLevel-1) {
-			for (j = 0; j < pWTCoefSet[i]->A_LL->m_nSizeRow*pWTCoefSet[i]->A_LL->m_nSizeCol; j++) {
-				pDecResult->m_pC[k] = pWTCoefSet[i]->A_LL->m_pData2D[j];
+			for (j = 0; j < pWTCoefSet[i]->A_LL->height*pWTCoefSet[i]->A_LL->width; j++) {
+				pDecResult->m_pC[k] = pWTCoefSet[i]->A_LL->data[j];
 				k++;
 			}
-			DATA2D(pDecResult->m_pS, 0, 0, 2) = pWTCoefSet[nWTLevel-1]->A_LL->m_nSizeRow;
-			DATA2D(pDecResult->m_pS, 0, 1, 2) = pWTCoefSet[nWTLevel-1]->A_LL->m_nSizeCol;
+			DATA2D(pDecResult->m_pS, 0, 0, 2) = pWTCoefSet[nWTLevel-1]->A_LL->height;
+			DATA2D(pDecResult->m_pS, 0, 1, 2) = pWTCoefSet[nWTLevel-1]->A_LL->width;
 		}
-		for (j = 0; j < pWTCoefSet[i]->H_LH->m_nSizeRow*pWTCoefSet[i]->H_LH->m_nSizeCol; j++) {
-			pDecResult->m_pC[k] = pWTCoefSet[i]->H_LH->m_pData2D[j];
+		for (j = 0; j < pWTCoefSet[i]->H_LH->height*pWTCoefSet[i]->H_LH->width; j++) {
+			pDecResult->m_pC[k] = pWTCoefSet[i]->H_LH->data[j];
 			k++;
 		}
-		for (j = 0; j < pWTCoefSet[i]->V_HL->m_nSizeRow*pWTCoefSet[i]->V_HL->m_nSizeCol; j++) {
-			pDecResult->m_pC[k] = pWTCoefSet[i]->V_HL->m_pData2D[j];
+		for (j = 0; j < pWTCoefSet[i]->V_HL->height*pWTCoefSet[i]->V_HL->width; j++) {
+			pDecResult->m_pC[k] = pWTCoefSet[i]->V_HL->data[j];
 			k++;
 		}
-		for (j = 0; j < pWTCoefSet[i]->D_HH->m_nSizeRow*pWTCoefSet[i]->D_HH->m_nSizeCol; j++) {
-			pDecResult->m_pC[k] = pWTCoefSet[i]->D_HH->m_pData2D[j];
+		for (j = 0; j < pWTCoefSet[i]->D_HH->height*pWTCoefSet[i]->D_HH->width; j++) {
+			pDecResult->m_pC[k] = pWTCoefSet[i]->D_HH->data[j];
 			k++;
 		}
-		DATA2D(pDecResult->m_pS, nWTLevel-i, 0, 2) = pWTCoefSet[i]->A_LL->m_nSizeRow;
-		DATA2D(pDecResult->m_pS, nWTLevel-i, 1, 2) = pWTCoefSet[i]->A_LL->m_nSizeCol;
+		DATA2D(pDecResult->m_pS, nWTLevel-i, 0, 2) = pWTCoefSet[i]->A_LL->height;
+		DATA2D(pDecResult->m_pS, nWTLevel-i, 1, 2) = pWTCoefSet[i]->A_LL->width;
 	}
 
-	DATA2D(pDecResult->m_pS, nWTLevel+1, 0, 2) = pSrcData->m_nSizeRow;
-	DATA2D(pDecResult->m_pS, nWTLevel+1, 1, 2) = pSrcData->m_nSizeCol;
+	DATA2D(pDecResult->m_pS, nWTLevel+1, 0, 2) = pSrcData->height;
+	DATA2D(pDecResult->m_pS, nWTLevel+1, 1, 2) = pSrcData->width;
 
 	WB_FREE(pWaveletBase);
 	return pDecResult;
 }
 
 
-WTCOEFSet * SubWaveDec2(DBDataPanel2D * pSrcData, WaveletBASE * pWaveBase, int nExtType)
+WTCOEFSet * SubWaveDec2(MATRIX * pSrcData, WaveletBASE * pWaveBase, int nExtType)
 {
 	WTCOEFSet * pWTResult = NULL;
-	DBDataPanel2D * pTempDataA_LL = NULL, * pTempDataH_LH = NULL, * pTempDataV_HL = NULL, * pTempDataD_HH = NULL;
-	DBDataPanel2D * pTempDataA_LL2 = NULL, * pTempDataH_LH2 = NULL, * pTempDataV_HL2 = NULL, * pTempDataD_HH2 = NULL;
-	DBDataPanel2D * pTempDataExt = NULL, * pTempDataA_H = NULL, * pTempDataV_D = NULL;
-	DBDataPanel2D * pTempDataA_H2 = NULL, * pTempDataV_D2 = NULL;
+	MATRIX * pTempDataA_LL = NULL, * pTempDataH_LH = NULL, * pTempDataV_HL = NULL, * pTempDataD_HH = NULL;
+	MATRIX * pTempDataA_LL2 = NULL, * pTempDataH_LH2 = NULL, * pTempDataV_HL2 = NULL, * pTempDataD_HH2 = NULL;
+	MATRIX * pTempDataExt = NULL, * pTempDataA_H = NULL, * pTempDataV_D = NULL;
+	MATRIX * pTempDataA_H2 = NULL, * pTempDataV_D2 = NULL;
 
 	if (!(pWTResult = (WTCOEFSet*)calloc(1, sizeof(WTCOEFSet))))
 		exit(1);
@@ -155,26 +155,26 @@ WTCOEFSet * SubWaveDec2(DBDataPanel2D * pSrcData, WaveletBASE * pWaveBase, int n
 WTInfo * waveDec2Int(IntDataPanel2D * pSrcData, int nWTLevel, int nWaveType, int nExtType)
 {
 	int i, j;
-	DBDataPanel2D * pTempSrcData = NULL;
+	MATRIX * pTempSrcData = NULL;
 	WTInfo * pWTResult = NULL;
 
 	if (!pSrcData)
 		exit(1);
 
-	if (!(pTempSrcData = (DBDataPanel2D *)calloc(1, sizeof(DBDataPanel2D))))
+	if (!(pTempSrcData = (MATRIX *)calloc(1, sizeof(MATRIX))))
 		exit(1);
 
-	pTempSrcData->m_nSizeRow = pSrcData->m_nSizeRow;
-	pTempSrcData->m_nSizeCol = pSrcData->m_nSizeCol;
-	pTempSrcData->m_pData2D = (double *) calloc(pTempSrcData->m_nSizeRow*pTempSrcData->m_nSizeCol, sizeof(double));
-	if (!pTempSrcData->m_pData2D) {
+	pTempSrcData->height = pSrcData->height;
+	pTempSrcData->width = pSrcData->width;
+	pTempSrcData->data = (double *) calloc(pTempSrcData->height*pTempSrcData->width, sizeof(double));
+	if (!pTempSrcData->data) {
 		DDP_FREE(pTempSrcData);
 		exit(1);
 	}
 
-	for (i = 0; i < pTempSrcData->m_nSizeRow; i++)
-		for (j = 0; j < pTempSrcData->m_nSizeCol; j++)
-			DATA2D(pTempSrcData->m_pData2D, i, j, pTempSrcData->m_nSizeCol) = (double)DATA2D(pSrcData->m_pData2D, i, j, pSrcData->m_nSizeCol);
+	for (i = 0; i < pTempSrcData->height; i++)
+		for (j = 0; j < pTempSrcData->width; j++)
+			DATA2D(pTempSrcData->data, i, j, pTempSrcData->width) = (double)DATA2D(pSrcData->data, i, j, pSrcData->width);
 
 	pWTResult = waveDec2(pTempSrcData, nWTLevel, nWaveType, nExtType);
 
